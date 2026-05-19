@@ -1,0 +1,442 @@
+{
+  "name": "Agentic Research and Email Automation System",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "research-trigger",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\n\nconst topic = (body.topic || 'AI automation trends').trim().toLowerCase();\nconst audience = (body.audience || 'general').trim().toLowerCase();\nconst priority = (body.priority || 'normal').trim().toLowerCase();\n\nconst topicId = topic.replace(/\\s+/g, '_') + '_' + Date.now();\nconst runId = 'run_' + Math.random().toString(36).substring(2, 10);\nconst timestamp = new Date().toISOString();\n\nreturn [{\n  json: {\n    topic,\n    audience,\n    priority,\n    topicId,\n    runId,\n    timestamp,\n    normalizedInput: { topic, audience, priority }\n  }\n}];"
+      },
+      "id": "node-input-processing",
+      "name": "Input Processing",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 400]
+    },
+    {
+      "parameters": {
+        "url": "https://api.tavily.com/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "api_key",
+              "value": "={{ $env.TAVILY_API_KEY }}"
+            },
+            {
+              "name": "query",
+              "value": "={{ $json.topic }}"
+            },
+            {
+              "name": "search_depth",
+              "value": "advanced"
+            },
+            {
+              "name": "max_results",
+              "value": "5"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "node-research",
+      "name": "Research Layer (Tavily API)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [680, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": ""
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $env.ANTHROPIC_API_KEY }}"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-sonnet-4-6\",\n  \"max_tokens\": 1024,\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"You are a research assistant. Given the following raw search results about '{{ $('Input Processing').item.json.topic }}', extract and return a JSON array of objects. Each object must have these fields: title (string), source (URL string), summary (2-3 sentence string), confidence_score (number 0.0-1.0). Return ONLY valid JSON, no markdown.\\n\\nRaw results:\\n{{ JSON.stringify($json.results || $json) }}\"\n    }\n  ]\n}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "node-parsing-claude",
+      "name": "Parsing via Claude",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [900, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": ""
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json;\n\nlet parsedItems = [];\ntry {\n  const content = raw.content?.[0]?.text || raw.choices?.[0]?.message?.content || '';\n  parsedItems = JSON.parse(content);\n} catch (e) {\n  parsedItems = [];\n}\n\nif (!Array.isArray(parsedItems)) parsedItems = [];\n\nconst filtered = parsedItems.filter(item =>\n  item.confidence_score >= 0.6 &&\n  item.title &&\n  item.summary\n);\n\nconst inputData = $('Input Processing').item.json;\n\nreturn filtered.map(item => ({\n  json: {\n    ...item,\n    topic: inputData.topic,\n    audience: inputData.audience,\n    priority: inputData.priority,\n    topicId: inputData.topicId,\n    runId: inputData.runId,\n    timestamp: inputData.timestamp\n  }\n}));"
+      },
+      "id": "node-parse-filter",
+      "name": "Parsing & Filtering",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "key": "={{ $json.topicId }}"
+      },
+      "id": "node-memory-check",
+      "name": "Memory Check (Redis)",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [1340, 300],
+      "credentials": {
+        "redis": {
+          "id": "",
+          "name": ""
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "dedup-check",
+              "leftValue": "={{ $json.value }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-dedup-filter",
+      "name": "Deduplication Check",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1560, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $env.ANTHROPIC_API_KEY }}"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-sonnet-4-6\",\n  \"max_tokens\": 2048,\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"You are an AI decision engine for a research automation system. Given the following research results for the topic '{{ $('Input Processing').item.json.topic }}' targeting a '{{ $('Input Processing').item.json.audience }}' audience with '{{ $('Input Processing').item.json.priority }}' priority:\\n\\n{{ JSON.stringify($json) }}\\n\\nReturn ONLY a JSON object with these fields:\\n- decision: one of 'send', 'ignore', or 'escalate'\\n- reason: string explaining the decision\\n- email_subject: string\\n- email_body_html: full HTML email body with summary, key insights, and source references\\n- insights: array of strings (key takeaways)\\n- sources: array of {title, url} objects\"\n    }\n  ]\n}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "node-ai-decision",
+      "name": "AI Decision Layer (Claude)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1780, 200],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": ""
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json;\n\nlet decision = {};\ntry {\n  const content = raw.content?.[0]?.text || '';\n  decision = JSON.parse(content);\n} catch (e) {\n  decision = {\n    decision: 'ignore',\n    reason: 'Failed to parse AI decision response',\n    email_subject: '',\n    email_body_html: '',\n    insights: [],\n    sources: []\n  };\n}\n\nconst inputData = $('Input Processing').item.json;\n\nreturn [{\n  json: {\n    ...decision,\n    topic: inputData.topic,\n    audience: inputData.audience,\n    priority: inputData.priority,\n    topicId: inputData.topicId,\n    runId: inputData.runId,\n    timestamp: inputData.timestamp\n  }\n}];"
+      },
+      "id": "node-parse-decision",
+      "name": "Parse Decision Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2000, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false
+          },
+          "conditions": [
+            {
+              "id": "send-check",
+              "leftValue": "={{ $json.decision }}",
+              "rightValue": "ignore",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-decision-branch",
+      "name": "Branch on Decision",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2220, 200]
+    },
+    {
+      "parameters": {
+        "fromEmail": "automation@yourdomain.com",
+        "toEmail": "recipient@yourdomain.com",
+        "subject": "={{ $json.email_subject || '[Research Report] ' + $json.topic }}",
+        "emailType": "html",
+        "message": "={{ $json.email_body_html }}",
+        "options": {}
+      },
+      "id": "node-email",
+      "name": "Send Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [2440, 100],
+      "credentials": {
+        "smtp": {
+          "id": "",
+          "name": ""
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "={{ $('Input Processing').item.json.topicId }}",
+        "value": "={{ JSON.stringify({ processedAt: $now, runId: $json.runId, decision: $json.decision }) }}",
+        "keyType": "automatic",
+        "expire": true,
+        "ttl": 86400
+      },
+      "id": "node-memory-store",
+      "name": "Store in Memory (Redis)",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [2660, 100],
+      "credentials": {
+        "redis": {
+          "id": "",
+          "name": ""
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $('Input Processing').item.json;\nconst decision = $('Parse Decision Output').item?.json || {};\nconst emailSent = $('Send Email').item?.json || null;\n\nconst logEntry = {\n  runId: input.runId,\n  topicId: input.topicId,\n  topic: input.topic,\n  audience: input.audience,\n  priority: input.priority,\n  timestamp: input.timestamp,\n  completedAt: new Date().toISOString(),\n  decision: decision.decision || 'unknown',\n  decisionReason: decision.reason || '',\n  emailSent: !!emailSent,\n  insightsCount: (decision.insights || []).length,\n  sourcesCount: (decision.sources || []).length,\n  status: 'success'\n};\n\nconsole.log('[EXECUTION LOG]', JSON.stringify(logEntry, null, 2));\n\nreturn [{ json: logEntry }];"
+      },
+      "id": "node-logging",
+      "name": "Execution Logging",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2880, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $('Input Processing').item.json;\n\nconst logEntry = {\n  runId: input.runId,\n  topicId: input.topicId,\n  topic: input.topic,\n  timestamp: input.timestamp,\n  completedAt: new Date().toISOString(),\n  decision: 'duplicate',\n  status: 'skipped',\n  reason: 'Topic already processed within TTL window'\n};\n\nconsole.log('[DUPLICATE SKIP LOG]', JSON.stringify(logEntry, null, 2));\n\nreturn [{ json: logEntry }];"
+      },
+      "id": "node-duplicate-log",
+      "name": "Log Duplicate Skip",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1780, 420]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $('Input Processing').item?.json || {};\nconst error = $input.first().json;\n\nconst logEntry = {\n  runId: input.runId || 'unknown',\n  topicId: input.topicId || 'unknown',\n  topic: input.topic || 'unknown',\n  timestamp: input.timestamp || new Date().toISOString(),\n  completedAt: new Date().toISOString(),\n  status: 'error',\n  error: JSON.stringify(error)\n};\n\nconsole.error('[ERROR LOG]', JSON.stringify(logEntry, null, 2));\n\nreturn [{ json: logEntry }];"
+      },
+      "id": "node-error-log",
+      "name": "Error Logger",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 540]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: 'ok', runId: $('Input Processing').item.json.runId }) }}"
+      },
+      "id": "node-webhook-response",
+      "name": "Webhook Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [3100, 200]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [{ "node": "Input Processing", "type": "main", "index": 0 }]
+      ]
+    },
+    "Input Processing": {
+      "main": [
+        [{ "node": "Research Layer (Tavily API)", "type": "main", "index": 0 }]
+      ]
+    },
+    "Research Layer (Tavily API)": {
+      "main": [
+        [{ "node": "Parsing via Claude", "type": "main", "index": 0 }]
+      ],
+      "error": [
+        [{ "node": "Error Logger", "type": "main", "index": 0 }]
+      ]
+    },
+    "Parsing via Claude": {
+      "main": [
+        [{ "node": "Parsing & Filtering", "type": "main", "index": 0 }]
+      ],
+      "error": [
+        [{ "node": "Error Logger", "type": "main", "index": 0 }]
+      ]
+    },
+    "Parsing & Filtering": {
+      "main": [
+        [{ "node": "Memory Check (Redis)", "type": "main", "index": 0 }]
+      ]
+    },
+    "Memory Check (Redis)": {
+      "main": [
+        [{ "node": "Deduplication Check", "type": "main", "index": 0 }]
+      ]
+    },
+    "Deduplication Check": {
+      "main": [
+        [{ "node": "AI Decision Layer (Claude)", "type": "main", "index": 0 }],
+        [{ "node": "Log Duplicate Skip", "type": "main", "index": 0 }]
+      ]
+    },
+    "AI Decision Layer (Claude)": {
+      "main": [
+        [{ "node": "Parse Decision Output", "type": "main", "index": 0 }]
+      ],
+      "error": [
+        [{ "node": "Error Logger", "type": "main", "index": 0 }]
+      ]
+    },
+    "Parse Decision Output": {
+      "main": [
+        [{ "node": "Branch on Decision", "type": "main", "index": 0 }]
+      ]
+    },
+    "Branch on Decision": {
+      "main": [
+        [{ "node": "Send Email", "type": "main", "index": 0 }],
+        [{ "node": "Execution Logging", "type": "main", "index": 0 }]
+      ]
+    },
+    "Send Email": {
+      "main": [
+        [{ "node": "Store in Memory (Redis)", "type": "main", "index": 0 }]
+      ]
+    },
+    "Store in Memory (Redis)": {
+      "main": [
+        [{ "node": "Execution Logging", "type": "main", "index": 0 }]
+      ]
+    },
+    "Execution Logging": {
+      "main": [
+        [{ "node": "Webhook Response", "type": "main", "index": 0 }]
+      ]
+    },
+    "Log Duplicate Skip": {
+      "main": [
+        [{ "node": "Webhook Response", "type": "main", "index": 0 }]
+      ]
+    },
+    "Error Logger": {
+      "main": [
+        [{ "node": "Webhook Response", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "staticData": null,
+  "meta": {
+    "instanceId": ""
+  },
+  "pinData": {},
+  "versionId": "",
+  "triggerCount": 0,
+  "tags": []
+}
