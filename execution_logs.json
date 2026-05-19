@@ -1,0 +1,409 @@
+{
+  "execution_logs": [
+
+    {
+      "run_id": "run_a3f9b21c",
+      "topic_id": "ai_automation_trends_1746432001000",
+      "topic": "ai automation trends",
+      "audience": "technical lead",
+      "priority": "high",
+      "triggered_at": "2026-05-05T09:00:01.000Z",
+      "completed_at": "2026-05-05T09:00:14.832Z",
+      "duration_ms": 13832,
+      "stages": {
+        "input_processing": {
+          "status": "success",
+          "normalized_input": {
+            "topic": "ai automation trends",
+            "audience": "technical lead",
+            "priority": "high"
+          }
+        },
+        "research_layer": {
+          "status": "success",
+          "api": "Tavily",
+          "results_returned": 5,
+          "duration_ms": 2841
+        },
+        "parsing_transformation": {
+          "status": "success",
+          "items_parsed": 5,
+          "model": "claude-sonnet-4-6"
+        },
+        "filtering": {
+          "status": "success",
+          "items_before_filter": 5,
+          "items_after_filter": 4,
+          "filter_threshold": 0.6
+        },
+        "memory_check": {
+          "status": "success",
+          "duplicate_found": false,
+          "redis_key": "ai_automation_trends_1746432001000"
+        },
+        "ai_decision_layer": {
+          "status": "success",
+          "model": "claude-sonnet-4-6",
+          "decision": "send",
+          "reason": "High-priority topic for a technical lead audience with 4 high-confidence results found. Content is relevant and actionable.",
+          "duration_ms": 4102
+        },
+        "email_action": {
+          "status": "success",
+          "recipient": "recipient@yourdomain.com",
+          "subject": "[Research Report] AI Automation Trends – Technical Lead Briefing",
+          "insights_included": 4,
+          "sources_included": 4
+        },
+        "memory_store": {
+          "status": "success",
+          "ttl_seconds": 86400
+        },
+        "logging": {
+          "status": "success"
+        }
+      },
+      "decision": "send",
+      "email_sent": true,
+      "status": "success"
+    },
+
+    {
+      "run_id": "run_d7e2c84a",
+      "topic_id": "llm_agent_frameworks_1746432601000",
+      "topic": "llm agent frameworks",
+      "audience": "software engineer",
+      "priority": "normal",
+      "triggered_at": "2026-05-05T09:10:01.000Z",
+      "completed_at": "2026-05-05T09:10:18.211Z",
+      "duration_ms": 17211,
+      "stages": {
+        "input_processing": {
+          "status": "success",
+          "normalized_input": {
+            "topic": "llm agent frameworks",
+            "audience": "software engineer",
+            "priority": "normal"
+          }
+        },
+        "research_layer": {
+          "status": "success",
+          "api": "Tavily",
+          "results_returned": 5,
+          "duration_ms": 3012
+        },
+        "parsing_transformation": {
+          "status": "success",
+          "items_parsed": 5,
+          "model": "claude-sonnet-4-6"
+        },
+        "filtering": {
+          "status": "success",
+          "items_before_filter": 5,
+          "items_after_filter": 3,
+          "filter_threshold": 0.6
+        },
+        "memory_check": {
+          "status": "success",
+          "duplicate_found": false,
+          "redis_key": "llm_agent_frameworks_1746432601000"
+        },
+        "ai_decision_layer": {
+          "status": "success",
+          "model": "claude-sonnet-4-6",
+          "decision": "send",
+          "reason": "3 high-confidence results relevant to an engineering audience. Normal priority, content deemed informative enough to send.",
+          "duration_ms": 3987
+        },
+        "email_action": {
+          "status": "success",
+          "recipient": "recipient@yourdomain.com",
+          "subject": "[Research Report] LLM Agent Frameworks – Engineer Briefing",
+          "insights_included": 3,
+          "sources_included": 3
+        },
+        "memory_store": {
+          "status": "success",
+          "ttl_seconds": 86400
+        },
+        "logging": {
+          "status": "success"
+        }
+      },
+      "decision": "send",
+      "email_sent": true,
+      "status": "success"
+    },
+
+    {
+      "run_id": "run_b1a0f33e",
+      "topic_id": "ai_automation_trends_1746432901000",
+      "topic": "ai automation trends",
+      "audience": "technical lead",
+      "priority": "high",
+      "triggered_at": "2026-05-05T09:15:01.000Z",
+      "completed_at": "2026-05-05T09:15:02.144Z",
+      "duration_ms": 1144,
+      "stages": {
+        "input_processing": {
+          "status": "success",
+          "normalized_input": {
+            "topic": "ai automation trends",
+            "audience": "technical lead",
+            "priority": "high"
+          }
+        },
+        "research_layer": {
+          "status": "success",
+          "api": "Tavily",
+          "results_returned": 5,
+          "duration_ms": 2710
+        },
+        "parsing_transformation": {
+          "status": "success",
+          "items_parsed": 5,
+          "model": "claude-sonnet-4-6"
+        },
+        "filtering": {
+          "status": "success",
+          "items_before_filter": 5,
+          "items_after_filter": 4,
+          "filter_threshold": 0.6
+        },
+        "memory_check": {
+          "status": "success",
+          "duplicate_found": true,
+          "redis_key": "ai_automation_trends_1746432001000",
+          "original_run_id": "run_a3f9b21c",
+          "original_processed_at": "2026-05-05T09:00:14.832Z"
+        },
+        "ai_decision_layer": {
+          "status": "skipped",
+          "reason": "Duplicate detected — topic already processed within TTL window"
+        },
+        "email_action": {
+          "status": "skipped",
+          "reason": "Duplicate detected"
+        },
+        "memory_store": {
+          "status": "skipped"
+        },
+        "logging": {
+          "status": "success",
+          "note": "Duplicate skip recorded"
+        }
+      },
+      "decision": "duplicate",
+      "email_sent": false,
+      "status": "skipped",
+      "skip_reason": "Topic already processed within TTL window (original run: run_a3f9b21c)"
+    },
+
+    {
+      "run_id": "run_c5d3e99f",
+      "topic_id": "prompt_engineering_best_practices_1746433201000",
+      "topic": "prompt engineering best practices",
+      "audience": "product manager",
+      "priority": "low",
+      "triggered_at": "2026-05-05T09:20:01.000Z",
+      "completed_at": "2026-05-05T09:20:22.567Z",
+      "duration_ms": 21567,
+      "stages": {
+        "input_processing": {
+          "status": "success",
+          "normalized_input": {
+            "topic": "prompt engineering best practices",
+            "audience": "product manager",
+            "priority": "low"
+          }
+        },
+        "research_layer": {
+          "status": "success",
+          "api": "Tavily",
+          "results_returned": 5,
+          "duration_ms": 3199
+        },
+        "parsing_transformation": {
+          "status": "success",
+          "items_parsed": 5,
+          "model": "claude-sonnet-4-6"
+        },
+        "filtering": {
+          "status": "success",
+          "items_before_filter": 5,
+          "items_after_filter": 2,
+          "filter_threshold": 0.6
+        },
+        "memory_check": {
+          "status": "success",
+          "duplicate_found": false,
+          "redis_key": "prompt_engineering_best_practices_1746433201000"
+        },
+        "ai_decision_layer": {
+          "status": "success",
+          "model": "claude-sonnet-4-6",
+          "decision": "ignore",
+          "reason": "Only 2 results passed the confidence filter and the audience (product manager) is unlikely to benefit from the technical depth available. Low priority further supports ignoring.",
+          "duration_ms": 3854
+        },
+        "email_action": {
+          "status": "skipped",
+          "reason": "AI decision was 'ignore'"
+        },
+        "memory_store": {
+          "status": "skipped",
+          "reason": "Decision was ignore — not stored to allow future retry"
+        },
+        "logging": {
+          "status": "success"
+        }
+      },
+      "decision": "ignore",
+      "email_sent": false,
+      "status": "success"
+    },
+
+    {
+      "run_id": "run_f8c1d047",
+      "topic_id": "ai_regulation_policy_1746433501000",
+      "topic": "ai regulation policy",
+      "audience": "executive",
+      "priority": "high",
+      "triggered_at": "2026-05-05T09:25:01.000Z",
+      "completed_at": "2026-05-05T09:25:09.003Z",
+      "duration_ms": 8003,
+      "stages": {
+        "input_processing": {
+          "status": "success",
+          "normalized_input": {
+            "topic": "ai regulation policy",
+            "audience": "executive",
+            "priority": "high"
+          }
+        },
+        "research_layer": {
+          "status": "error",
+          "api": "Tavily",
+          "error_code": 429,
+          "error_message": "Rate limit exceeded. Retry after 60 seconds.",
+          "retry_attempt": 1,
+          "retry_status": "failed",
+          "duration_ms": 4001
+        },
+        "parsing_transformation": {
+          "status": "skipped",
+          "reason": "Research layer failed"
+        },
+        "filtering": {
+          "status": "skipped",
+          "reason": "Research layer failed"
+        },
+        "memory_check": {
+          "status": "skipped",
+          "reason": "Research layer failed"
+        },
+        "ai_decision_layer": {
+          "status": "skipped",
+          "reason": "Research layer failed"
+        },
+        "email_action": {
+          "status": "skipped",
+          "reason": "Research layer failed"
+        },
+        "memory_store": {
+          "status": "skipped"
+        },
+        "logging": {
+          "status": "success",
+          "error_recorded": true
+        }
+      },
+      "decision": "error",
+      "email_sent": false,
+      "status": "error",
+      "error": {
+        "stage": "research_layer",
+        "code": 429,
+        "message": "Tavily API rate limit exceeded after 1 retry attempt."
+      }
+    },
+
+    {
+      "run_id": "run_e2b7a115",
+      "topic_id": "generative_ai_in_healthcare_1746433801000",
+      "topic": "generative ai in healthcare",
+      "audience": "technical lead",
+      "priority": "high",
+      "triggered_at": "2026-05-05T09:30:01.000Z",
+      "completed_at": "2026-05-05T09:30:19.447Z",
+      "duration_ms": 18447,
+      "stages": {
+        "input_processing": {
+          "status": "success",
+          "normalized_input": {
+            "topic": "generative ai in healthcare",
+            "audience": "technical lead",
+            "priority": "high"
+          }
+        },
+        "research_layer": {
+          "status": "success",
+          "api": "Tavily",
+          "results_returned": 5,
+          "duration_ms": 3120
+        },
+        "parsing_transformation": {
+          "status": "success",
+          "items_parsed": 5,
+          "model": "claude-sonnet-4-6"
+        },
+        "filtering": {
+          "status": "success",
+          "items_before_filter": 5,
+          "items_after_filter": 5,
+          "filter_threshold": 0.6
+        },
+        "memory_check": {
+          "status": "success",
+          "duplicate_found": false,
+          "redis_key": "generative_ai_in_healthcare_1746433801000"
+        },
+        "ai_decision_layer": {
+          "status": "success",
+          "model": "claude-sonnet-4-6",
+          "decision": "escalate",
+          "reason": "All 5 results passed filtering with high confidence scores. The topic 'generative AI in healthcare' is high-priority and sensitive — escalation ensures a human review before delivery.",
+          "duration_ms": 4302
+        },
+        "email_action": {
+          "status": "success",
+          "recipient": "recipient@yourdomain.com",
+          "subject": "[ESCALATED] Generative AI in Healthcare – Requires Review",
+          "insights_included": 5,
+          "sources_included": 5,
+          "escalation_flag": true
+        },
+        "memory_store": {
+          "status": "success",
+          "ttl_seconds": 86400
+        },
+        "logging": {
+          "status": "success"
+        }
+      },
+      "decision": "escalate",
+      "email_sent": true,
+      "status": "success"
+    }
+
+  ],
+
+  "summary": {
+    "total_runs": 6,
+    "successful_sends": 3,
+    "duplicates_skipped": 1,
+    "ignored_by_ai": 1,
+    "escalated": 1,
+    "errors": 1
+  }
+}
